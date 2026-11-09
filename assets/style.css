@@ -1,0 +1,58 @@
+:root{--ink:#0C0C0C;--ink2:#3F5661;--ink3:#5B6F7B;--red:#E3120B;--blue:#006BA2;--no:#DB444B;--yes:#00875A;--na:#8A9BA5;--land:#F0F1F3;--focus:#CDD1D6;--focus-h:#AEB4BB;--edge:#FFFFFF;--bg:#FFFFFF;--sans:"Libre Franklin","Helvetica Neue",Arial,sans-serif;--cond:"Libre Franklin","Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.35 var(--sans)}
+.fig{max-width:1200px;margin:0 auto;padding-block:18px 20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.title{margin:8px 0 0;font:700 clamp(24px,3vw,34px)/1.12 var(--sans);letter-spacing:-.005em}
+.crumb{padding-top:6px;font:400 15px/1.2 var(--sans);color:var(--ink3)}
+.crumb a{color:var(--blue);text-decoration:none}
+.crumb a:hover{text-decoration:underline}
+.crumb b{color:var(--ink);font-weight:400}
+#map{margin-top:6px;line-height:0}
+svg.map{display:block;width:100%}
+.st{fill:var(--land);stroke:var(--edge);stroke-width:.9}
+.st.on{fill:var(--focus);stroke:var(--edge);stroke-width:1}
+.st.link{cursor:pointer;transition:fill .12s}
+a:hover .st.link,a:focus-visible .st.link{fill:var(--focus-h)}
+.lead{stroke:var(--ink);stroke-width:.75;fill:none}
+.d-bind{fill:var(--no);stroke:var(--bg);stroke-width:1.2}
+.d-adv{fill:var(--bg);stroke:var(--no);stroke-width:2.6}
+.d-dc{fill:var(--yes);stroke:var(--bg);stroke-width:1.2}
+.d-na{fill:var(--na);stroke:var(--bg);stroke-width:1.2}
+.hit{fill:transparent;cursor:pointer}
+.lbl{font-family:var(--cond);fill:var(--ink);font-weight:400;paint-order:stroke;stroke:var(--bg);stroke-opacity:.82;stroke-width:3px;stroke-linejoin:round}
+.lbl .p{font-weight:400;font-variant-numeric:tabular-nums}
+.lbl .sub{fill:var(--ink2)}
+.lbl.go{cursor:pointer;fill:var(--ink2);font-weight:400;stroke:none}
+a:hover .lbl.go{fill:var(--blue)}
+.ref{font-family:var(--cond);font-weight:400;fill:var(--ink3);paint-order:stroke;stroke:var(--bg);stroke-opacity:.7;stroke-width:2.4px;stroke-linejoin:round}
+.refdot{fill:var(--ink3)}
+#key{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;margin-top:10px;font:400 15px/1.25 var(--sans)}
+.k{display:flex;align-items:center;gap:6px}
+.k b{font-weight:400;font-variant-numeric:tabular-nums}
+.k svg{flex:none}
+.k.pct{color:var(--ink3)}
+#src{margin:8px 0 0;font:400 13px/1.35 var(--sans);color:var(--ink3)}
+#tip{position:fixed;z-index:20;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow-y:auto;padding:10px 12px;background:var(--bg);border:1px solid var(--ink);color:var(--ink);font:400 15px/1.35 var(--sans);pointer-events:auto}
+#tip b{display:block;font-weight:400;font-size:16px;line-height:1.2}
+#tip .c{display:block;color:var(--ink3);font-size:13.5px;line-height:1.3}
+#tip p{margin:6px 0 7px}
+#tip .v{display:flex;gap:14px;font-variant-numeric:tabular-nums;margin-bottom:4px;line-height:1.25}
+#tip:not(.pin){cursor:pointer}
+#tip.pin b{padding-right:22px}
+#tip .hint{display:block;margin-top:4px;color:var(--ink3);font-size:13px;line-height:1.3}
+#tip .acts{display:flex;gap:16px;align-items:baseline;margin-top:4px}
+#tip .acts a{font-size:14px}
+.tip-x{appearance:none;position:absolute;top:4px;right:6px;width:24px;height:24px;border:0;background:none;color:var(--ink2);font:400 20px/1 var(--sans);cursor:pointer;padding:0}
+.tip-x:hover{color:var(--ink)}
+.tip-x:focus-visible{outline:2px solid var(--blue)}
+.more-btn{appearance:none;border:0;background:none;padding:2px 0;margin-top:0;color:var(--blue);font:400 14px/1.3 var(--sans);cursor:pointer}
+.more-btn:hover{text-decoration:underline}
+.more-btn:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+#tip .more{margin-top:6px;padding-top:6px;border-top:1px solid #D5DBE2}
+#tip .more .c+.c{margin-top:4px}
+#tip .s{font-size:14px;line-height:1.3;margin-top:4px}
+#tip .s span{color:var(--ink3)}
+#tip a{color:var(--blue)}
+a:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+@media (prefers-reduced-motion:reduce){.st.link{transition:none}}
