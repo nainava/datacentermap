@@ -55,4 +55,6 @@ a:hover .lbl.go{fill:var(--blue)}
 #tip .s span{color:var(--ink3)}
 #tip a{color:var(--blue)}
 a:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+svg a{outline:none}
+svg a:focus-visible .lbl.go{text-decoration:underline}
 @media (prefers-reduced-motion:reduce){.st.link{transition:none}}

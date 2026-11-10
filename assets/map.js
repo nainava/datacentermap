@@ -125,7 +125,7 @@ function draw(){
   if(ST){const b=d3.geoPath(d3.geoConicConformal().parallels([38,42]).rotate([-d3.geoCentroid(focal)[0],0]).scale(1000)).bounds(focal),a=(b[1][1]-b[0][1])/(b[1][0]-b[0][0]);
     H=small?Math.round(W*Math.max(a*1.02,.72)):Math.round(Math.min(vh,Math.max(W*a*.9,W*.58)))}
   else H=small?Math.round(W*.92):Math.round(Math.min(vh,W*.62));
-  const fs=small?13.5:(ST?16:15),lh=fs*1.2,R=ST?(small?5.4:7.5):(small?2.9:4.4);
+  const fs=small?13.5:(ST?16:15),lh=fs*1.2,R=ST?(small?5.4:7.5):Math.max(2.6,Math.min(4.4,W*0.00355));
   const proj=ST?(()=>{const c=d3.geoCentroid(focal),[l,t,r,b]=small?[.15,.06,.15,.06]:[.09,.06,.09,.06];return d3.geoConicConformal().parallels([c[1]-1.5,c[1]+1.5]).rotate([-c[0],0]).fitExtent([[W*l,H*t],[W*(1-r),H*(1-b)]],focal)})()
     :d3.geoAlbersUsa().fitExtent([[W*.03,H*(small?.14:.04)],[W*.95,H*(small?.86:.97)]],{type:'FeatureCollection',features:F});
   const path=d3.geoPath(proj);host.textContent='';
@@ -141,7 +141,15 @@ function draw(){
   });
   const nodeList=ST?stateNodes(ST):M.map(m=>({ms:[m]}));
   const nodes=nodeList.map(n=>{const pts=n.ms.map(m=>proj([m.lon,m.lat])),tx=d3.mean(pts,p=>p[0]),ty=d3.mean(pts,p=>p[1]);return {...n,tx,ty,x:tx,y:ty,rad:n.ms.length>1?(R+.8)*Math.SQRT2+R*.9:R}});
-  d3.forceSimulation(nodes).force('x',d3.forceX(d=>d.tx).strength(.8)).force('y',d3.forceY(d=>d.ty).strength(.8)).force('c',d3.forceCollide(d=>d.rad+.9).iterations(4)).stop().tick(240);
+  /* spread overlapping dots apart, but never across their own state's border: a dot pushed outside is pulled back toward its true spot, so crowded states overlap slightly instead of spilling */
+  const featBy=Object.fromEntries(F.map(f=>[f.code,f]));
+  const g=R+.8,inAt=(n,x,y)=>{const pts=n.ms.length>1?[[x-g,y-g],[x+g,y-g],[x-g,y+g],[x+g,y+g]]:[[x,y]];return pts.every(q=>{const ll=proj.invert(q);return !!ll&&d3.geoContains(featBy[n.ms[0].st],ll)})};
+  const inState=n=>inAt(n,n.x,n.y);
+  const sim=d3.forceSimulation(nodes).force('x',d3.forceX(d=>d.tx).strength(.8)).force('y',d3.forceY(d=>d.ty).strength(.8)).force('c',d3.forceCollide(d=>d.rad+.9).iterations(4)).stop();
+  for(let i=0;i<240;i++){sim.tick();nodes.forEach(n=>{if(!inState(n)){n.x=(n.x+n.tx)/2;n.y=(n.y+n.ty)/2;n.vx=0;n.vy=0}})}
+  nodes.forEach(n=>{if(inState(n))return;n.x=n.tx;n.y=n.ty;if(inState(n))return;
+    /* a dot or group sitting right on a border: step inward to the nearest spot fully inside */
+    for(let r=1;r<=8*R;r+=1){let done=false;for(let a=0;a<16&&!done;a++){const x=n.tx+r*Math.cos(a*Math.PI/8),y=n.ty+r*Math.sin(a*Math.PI/8);if(inAt(n,x,y)){n.x=x;n.y=y;done=true}}if(done)break}});
   const dots=[];
   nodes.forEach(n=>{n.parts=n.ms.length===1?[{m:n.ms[0],x:n.x,y:n.y,r:R}]:n.ms.map((m,i)=>({m,r:R,x:n.x+(i%2?1:-1)*(R+.8),y:n.y+(i<2?-1:1)*(R+.8)}));dots.push(...n.parts)});
   const items=[],size=(c)=>({h:c.lines.length*lh,w:Math.ceil(d3.max(c.lines,l=>tw(l.text,fs,400)))+2});
@@ -152,13 +160,33 @@ function draw(){
     /* hand-placed state names: [lat, lon, text-anchor] */
     const NAME_AT={CA:[37.3,-119.7],NV:[39.6,-116.9],ND:[47.45,-100.6],KS:[38.5,-99.6],WI:[44.7,-90.15],FL:[27.75,-81.42],IL:[41.65,-89.92],ME:[45.75,-69.15],OH:[40.62,-81.42],NJ:[40.05,-73.55,'start']};
     const NAME_PHONE={IL:[41.55,-89.95],ME:[47.25,-69.05],OH:[40.35,-81.45],FL:[26.9,-81.3],KS:[38.5,-100.4],WI:[45.4,-90.1],ND:[47.5,-101.2],NJ:[40.1,-73.1,'start']};
-    const lf=small?11:fs-1.5;
+    /* each state name tests itself at the size it is drawn: full name, then postal code, then hidden.
+       It must sit inside its own state (New Jersey's sits in the ocean beside it) and clear every dot. */
+    const lf=W<700?11.5:W<1000?12.5:fs-1.5;
+    const feat=Object.fromEntries(F.map(f=>[f.code,f]));
+    const fitsPx=(st,text,px,py,anchor)=>{
+      const w=Math.ceil(tw(text,lf,400))+2,h=lf*1.15,x0=anchor==='start'?px:px-w/2,y0=py-h/2;
+      if(x0<2||x0+w>W-2||y0<2||y0+h>H-2)return null;
+      if(anchor!=='start'){for(const x of [x0+1,x0+w/2,x0+w-1])for(const y of [py]){const ll=proj.invert([x,y]);if(!ll||!d3.geoContains(feat[st],ll))return null}}
+      for(const d of dots){if(d.x+d.r+1>x0&&d.x-d.r-1<x0+w&&d.y+d.r+1>y0-1&&d.y-d.r-1<y0+h+1)return null}
+      return {p:[px,py],anchor,w,h};
+    };
+    const fixedTry=(st,text)=>{for(const pos of [NAME_AT[st],NAME_PHONE[st]].filter(Boolean)){const [lat,lon,anchor='middle']=pos,p=proj([lon,lat]);if(p){const f=fitsPx(st,text,p[0],p[1],anchor);if(f)return f}}return null};
+    const gridTry=(st,text)=>{
+      if(st==='NJ')return null;
+      const [[bx0,by0],[bx1,by1]]=path.bounds(feat[st]),pref=proj([NAME_AT[st][1],NAME_AT[st][0]]),c=[];
+      for(let x=bx0;x<=bx1;x+=3)for(let y=by0;y<=by1;y+=3)c.push([x,y,Math.hypot(x-pref[0],y-pref[1])]);
+      c.sort((a,b)=>a[2]-b[2]);
+      for(const [x,y] of c){const f=fitsPx(st,text,x,y,'middle');if(f)return f}
+      return null;
+    };
     Object.keys(INFO).forEach(st=>{
-      if(small&&(st==='OH'||st==='IL'))return; /* too crowded for a code at phone size; the state shape still links */
       const own=nodes.filter(n=>n.ms[0].st===st);
-      const text=small?st:INFO[st][0],w=Math.ceil(tw(text,lf,400))+2,h=lh;
-      const [lat,lon,anchor]=(small&&NAME_PHONE[st])||NAME_AT[st],p=proj([lon,lat]);
-      items.push({x:p[0],y:p[1],ar:0,fixed:true,anchor:anchor||'middle',own:new Set(own.flatMap(n=>n.parts)),go:st,fs:lf,lines:[{text}],w,h});
+      let hit=null,text=null;
+      /* full name at its usual spot, then anywhere open inside the state; then the postal code the same way */
+      for(const t of [INFO[st][0],st]){hit=fixedTry(st,t)||gridTry(st,t);if(hit){text=t;break}}
+      if(!hit)return; /* no room at this size; the state shape still links to its page */
+      items.push({x:hit.p[0],y:hit.p[1],ar:0,fixed:true,anchor:hit.anchor,own:new Set(own.flatMap(n=>n.parts)),go:st,fs:lf,lines:[{text}],w:hit.w,h:lh});
     });
   }
   solve(items,dots,W,H);
@@ -166,7 +194,7 @@ function draw(){
   items.filter(i=>i.ref).forEach(it=>svg.append('rect').attr('class','refdot').attr('x',it.x-2.2).attr('y',it.y-2.2).attr('width',4.4).attr('height',4.4));
   dots.forEach(p=>{
     const c=svg.append('g');
-    c.append('circle').attr('class',p.m.cls).attr('cx',p.x).attr('cy',p.y).attr('r',p.m.cls==='d-adv'?p.r-1:p.r).style('stroke-width',p.m.cls==='d-adv'?Math.min(2.6,p.r*.36)+'px':null);
+    c.append('circle').attr('class',p.m.cls).attr('data-st',p.m.st).attr('cx',p.x).attr('cy',p.y).attr('r',p.m.cls==='d-adv'?p.r-1:p.r).style('stroke-width',p.m.cls==='d-adv'?Math.min(2.6,p.r*.36)+'px':null);
     c.append('circle').attr('class','hit').attr('cx',p.x).attr('cy',p.y).attr('r',Math.max(p.r+3,small?11:8))
       .on('pointerenter',e=>{clearTimeout(hideT);clearTimeout(showT);if(pinned)return;const go=()=>{tipFor(p.m,false);moveTip(e)};if(tip.hidden)go();else showT=setTimeout(go,180)}).on('pointerleave',()=>{clearTimeout(showT);hideTip()})
       .on('click',e=>{e.stopPropagation();clearTimeout(showT);clearTimeout(hideT);tipFor(p.m,true);moveTip(e);keepTipInView()});
